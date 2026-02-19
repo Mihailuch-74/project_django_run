@@ -1,10 +1,15 @@
 from django.contrib import admin
-from django.urls import path
-from django.conf.urls.static import static
-from django.conf import settings
+from django.urls import path, include
 from app_run import views
+from rest_framework.routers import DefaultRouter
+from app_run.views import RunViewSet
+
+router = DefaultRouter()
+router.register("api/runs", RunViewSet)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/company_details/", views.company_details),
+    # path("api/company_details/<int:id>", views.company_details),
+    path("", include(router.urls)),
 ]
