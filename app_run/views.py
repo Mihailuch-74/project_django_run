@@ -32,6 +32,7 @@ class PagePagination(PageNumberPagination):
 
 class UserViewSet(ReadOnlyModelViewSet):
     queryset = User.objects.filter(is_superuser=False)
+
     serializer_class = UserSerializer
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ["first_name", "last_name"]
