@@ -10,8 +10,13 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.filters import OrderingFilter
 
-from app_run.models import Run, AthleteInfo
-from app_run.serializers import RunSerializer, UserSerializer, AthleteInfoSerializer
+from app_run.models import Run, AthleteInfo, Challenge
+from app_run.serializers import (
+    RunSerializer,
+    UserSerializer,
+    AthleteInfoSerializer,
+    ChallengeSerializer,
+)
 
 
 @api_view(["GET"])
@@ -48,6 +53,23 @@ class UserViewSet(ReadOnlyModelViewSet):
 
         elif type == "athlete":
             qs = qs.filter(is_staff=False)
+
+        return qs
+
+
+class ChallengesViewSet(ReadOnlyModelViewSet):
+    queryset = Challenge.objects.all()
+    serializer_class = ChallengeSerializer
+
+    filter_backends = [DjangoFilterBackend]
+    search_fields = ["athlete"]
+
+    def get_queryset(self):
+        qs = self.queryset
+        athlete = self.request.query_params.get("athlete", None)
+
+        if athlete:
+            qs = qs.filter(athlete=athlete)
 
         return qs
 
@@ -97,6 +119,17 @@ class RunStopApiView(APIView):
             if run.status == "in_progress":
                 run.status = "finished"
                 run.save()
+
+                finished_count = Run.objects.filter(
+                    athlete=run.athlete, status="finished"
+                ).count()
+
+                if finished_count == 10:
+                    Challenge.objects.get_or_create(
+                        athlete=run.athlete,
+                        full_name="Сделай 10 Забегов!",
+                    )
+
                 data = {"message": "Забег окончен"}
                 return Response(data, status=status.HTTP_200_OK)
 
