@@ -10,8 +10,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.filters import OrderingFilter
 
-from app_run.models import Run
-from app_run.serializers import RunSerializer, UserSerializer
+from app_run.models import Run, AthleteInfo
+from app_run.serializers import RunSerializer, UserSerializer, AthleteInfoSerializer
 
 
 @api_view(["GET"])
@@ -108,3 +108,62 @@ class RunStopApiView(APIView):
             data = {"message": "Забег не найден"}
 
         return Response(data, status=status.HTTP_404_NOT_FOUND)
+
+
+class AthleteInfoApiView(APIView):
+    serializer_class = AthleteInfoSerializer
+
+    def get(self, request, *args, **kwargs):
+        user_id = self.kwargs.get("user_id")
+
+        if user_id is None:
+            return Response(
+                {"message": "Некорректный user_id"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        athlete_info, created = AthleteInfo.objects.get_or_create(user_id_id=user_id)
+
+        if created:
+            return Response(
+                {"message": "Пользователь создан"}, status=status.HTTP_201_CREATED
+            )
+
+        else:
+            return Response(
+                {"message": "Пользователь получен"}, status=status.HTTP_200_OK
+            )
+
+    def put(self, request, *args, **kwargs):
+        user_id = self.kwargs.get("user_id")
+        weight = int(request.data.get("weight", 0))
+        goals = request.data.get("goals", "")
+
+        if user_id is None:
+            return Response(
+                {"message": "Некорректный user_id"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not (0 < weight < 900):
+            return Response(
+                {"message": "Вес должен быть больше 0 и меньше 900"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        athlete_info, created = AthleteInfo.objects.update_or_create(
+            user_id_id=user_id,
+            defaults={
+                "goals": goals,
+                "weight": weight,
+            },
+        )
+
+        return Response(
+            {
+                "message": (
+                    "Пользователь создан" if created else "Пользователь обновлён"
+                )
+            },
+            status=status.HTTP_201_CREATED,
+        )
