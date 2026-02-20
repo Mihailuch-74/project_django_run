@@ -6,6 +6,9 @@ from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework import status
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.filters import OrderingFilter
 
 from app_run.models import Run
 from app_run.serializers import RunSerializer, UserSerializer
@@ -22,14 +25,18 @@ def company_details(request):
     )
 
 
+class PagePagination(PageNumberPagination):
+    page_size_query_param = "size"
+    max_page_size = 5
+
+
 class UserViewSet(ReadOnlyModelViewSet):
     queryset = User.objects.filter(is_superuser=False)
     serializer_class = UserSerializer
-    filter_backends = [SearchFilter]
-    search_fields = [
-        "first_name",
-        "last_name",
-    ]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["first_name", "last_name"]
+    ordering_fields = ["date_joined"]
+    pagination_class = PagePagination
 
     def get_queryset(self):
         qs = self.queryset
@@ -47,6 +54,10 @@ class UserViewSet(ReadOnlyModelViewSet):
 class RunViewSet(ModelViewSet):
     queryset = Run.objects.select_related("athlete")
     serializer_class = RunSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ["status", "athlete"]
+    ordering_fields = ["created_at"]
+    pagination_class = PagePagination
 
 
 class RunStartApiView(APIView):
